@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\fe-third\\\\hello-uni-app-x\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem -Path \"D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\hy-app\" -Recurse -Force)",
+      "Bash(Select-Object -Property FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(ConvertTo-Json -Depth 100)",
+      "Bash(Out-String)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Get-ChildItem \"D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\fe-third\\\\hello-uni-app-x\" -Force | Select-Object Name, @{N='Type';E={if\\($_.PSIsContainer\\){'Dir'}else{'File'}}} | Sort-Object Name | Format-Table -AutoSize)",
+      "PowerShell(head *)",
+      "Bash(xargs -I{} head -5 \"{}\")"
+    ]
+  }
+}

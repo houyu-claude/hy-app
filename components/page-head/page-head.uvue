@@ -1,0 +1,35 @@
+<template>
+  <view class="page-head">
+    <view class="page-head-title-box">
+      <text class="page-head-title">{{ title }}</text>
+    </view>
+  </view>
+</template>
+
+<script lang="uts" setup>
+  const props = defineProps({
+    title: { type: String, default: "" }
+  })
+
+  const emit = defineEmits(['back', 'refresh'])
+</script>
+
+<style lang="scss" styleIsolation="app">
+  .page-head {
+    padding: 20rpx;
+    display: flex;
+    align-items: center;
+  }
+
+  .page-head-title-box {
+    padding: 0 20rpx;
+    border-bottom: 1px solid $uni-border-color;
+  }
+
+  .page-head-title {
+    line-height: 80rpx;
+    color: $uni-text-color;
+    font-size: $uni-font-size-lg;
+    font-weight: 600;
+  }
+</style>

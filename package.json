@@ -3,15 +3,21 @@
     "name": "hy-app",
     "displayName": "houyu-app",
     "version": "1.0.0",
-    "description": "基于uni-app x框架的跨平台前端应用",
+    "description": "基于uni-app x框架的跨平台前端应用，支持微信小程序、App、H5多端运行",
     "scripts": {},
-    "repository": "",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/houyu-claude/hy-app.git"
+    },
     "keywords": [
         "uni-app-x",
         "uniapp",
-        "hybrid"
+        "hybrid",
+        "cross-platform",
+        "Vue3",
+        "UTS"
     ],
-    "author": "",
+    "author": "houyu",
     "license": "MIT",
     "dependencies": {},
     "engines": {

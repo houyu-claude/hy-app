@@ -99,3 +99,15 @@ view, text {
 .radius-lg {
   border-radius: 16rpx;
 }
+
+.theme-dark {
+  --text-color: #fff;
+  --bg-color: #1a1a1a;
+  --border-color: #333;
+}
+
+.theme-light {
+  --text-color: #333;
+  --bg-color: #fff;
+  --border-color: #e5e5e5;
+}

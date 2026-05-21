@@ -1,25 +1,86 @@
 <script setup lang="uts">
+  import { state, setStatusBarHeight, setSafeArea, setLifeCycleNum, checkSystemTheme } from '@/store/index.uts'
+
+  const ERROR_LOG_KEY = 'HY_APP_ERROR_LOG'
+
+  const saveErrorLog = (err: string) => {
+    const logs = uni.getStorageSync(ERROR_LOG_KEY) || []
+    const errorLog = {
+      message: err,
+      timestamp: Date.now(),
+      lifeCycleNum: state.lifeCycleNum
+    }
+    logs.push(errorLog)
+    if (logs.length > 100) {
+      logs.shift()
+    }
+    uni.setStorageSync(ERROR_LOG_KEY, logs)
+  }
+
   onLaunch((res: OnLaunchOptions) => {
     console.log('App Launch', res)
+    setLifeCycleNum(state.lifeCycleNum + 1000)
+    
+    uni.getSystemInfo({
+      success: (sysInfo: GetSystemInfoResult) => {
+        if (sysInfo.statusBarHeight) {
+          setStatusBarHeight(sysInfo.statusBarHeight)
+        }
+        if (sysInfo.safeArea) {
+          setSafeArea(sysInfo.safeArea)
+        }
+      }
+    })
+    
+    checkSystemTheme()
   })
 
   onAppShow((res: OnShowOptions) => {
     console.log('App Show', res)
+    setLifeCycleNum(state.lifeCycleNum + 100)
   })
 
   onAppHide(() => {
     console.log('App Hide')
+    setLifeCycleNum(state.lifeCycleNum - 100)
   })
 
-  onError((err: any) => {
+  onError((err: string) => {
     console.log('App Error', err)
+    saveErrorLog(err)
+    
+    // #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+    uni.report({
+      name: 'uni-app-error',
+      options: err,
+      success: (res) => {
+        console.log('Error reported:', res)
+      },
+      fail: (error) => {
+        console.log('Report failed:', error)
+      }
+    })
+    // #endif
   })
+
+  // #ifdef APP-ANDROID || APP-HARMONY
+  onLastPageBackPress(() => {
+    uni.showToast({
+      title: '再按一次退出应用',
+      position: 'bottom'
+    })
+    setTimeout(() => {
+      uni.exit()
+    }, 2000)
+  })
+
+  onExit(() => {
+    console.log('App Exit')
+    setLifeCycleNum(state.lifeCycleNum - 1000)
+  })
+  // #endif
 </script>
 
 <style>
   @import "./common/uni.css";
-
-  page {
-    background-color: #f5f5f5;
-  }
 </style>
