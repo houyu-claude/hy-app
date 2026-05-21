@@ -1,0 +1,466 @@
+<template>
+  <view class="login-container">
+    <view class="login-header">
+      <view class="logo-wrapper">
+        <view class="logo-icon">
+          <text class="logo-text">HY</text>
+        </view>
+      </view>
+      <text class="app-title">houyu-app</text>
+      <text class="app-subtitle">欢迎回来</text>
+    </view>
+
+    <view class="login-form">
+      <view class="tabs-wrapper">
+        <view 
+          class="tab-item" 
+          :class="{ active: loginType === 'password' }"
+          @click="loginType = 'password'"
+        >
+          <text class="tab-text">账号密码</text>
+          <view v-if="loginType === 'password'" class="tab-indicator"></view>
+        </view>
+        <view 
+          class="tab-item" 
+          :class="{ active: loginType === 'sms' }"
+          @click="loginType = 'sms'"
+        >
+          <text class="tab-text">短信验证</text>
+          <view v-if="loginType === 'sms'" class="tab-indicator"></view>
+        </view>
+      </view>
+
+      <view class="form-content">
+        <view class="form-item">
+          <view class="input-icon">
+            <text class="icon-text">👤</text>
+          </view>
+          <input 
+            class="form-input" 
+            v-model="form.username" 
+            placeholder="请输入用户名"
+            type="text"
+            placeholder-class="input-placeholder"
+          />
+        </view>
+
+        <view class="form-item" v-if="loginType === 'password'">
+          <view class="input-icon">
+            <text class="icon-text">🔒</text>
+          </view>
+          <input 
+            class="form-input" 
+            v-model="form.password" 
+            placeholder="请输入密码"
+            type="password"
+            placeholder-class="input-placeholder"
+          />
+        </view>
+
+        <view class="form-item" v-else>
+          <view class="input-icon">
+            <text class="icon-text">📱</text>
+          </view>
+          <input 
+            class="form-input" 
+            v-model="form.smsCode" 
+            placeholder="请输入验证码"
+            type="number"
+            placeholder-class="input-placeholder"
+          />
+          <view 
+            class="sms-btn" 
+            :class="{ disabled: !form.username || smsCountdown > 0 }"
+            @click="sendSmsCode"
+          >
+            <text class="sms-text">{{ smsCountdown > 0 ? smsCountdown + 's' : '获取验证码' }}</text>
+          </view>
+        </view>
+
+        <view v-if="loginType === 'password'" class="remember-wrapper">
+          <view 
+            class="remember-checkbox" 
+            :class="{ checked: rememberMe }"
+            @click="rememberMe = !rememberMe"
+          >
+            <text v-if="rememberMe" class="check-icon">✓</text>
+          </view>
+          <text class="remember-text">记住我</text>
+          <text class="forgot-text">忘记密码?</text>
+        </view>
+      </view>
+
+      <view 
+        class="login-btn" 
+        :class="{ disabled: !canLogin }"
+        @click="handleLogin"
+      >
+        <text class="login-btn-text">{{ loginType === 'password' ? '登录' : '短信验证登录' }}</text>
+      </view>
+
+      <view class="other-options">
+        <text class="divider-text">其他登录方式</text>
+        <view class="social-wrapper">
+          <view class="social-item">
+            <text class="social-icon">🐧</text>
+            <text class="social-text">QQ</text>
+          </view>
+          <view class="social-item">
+            <text class="social-icon">💬</text>
+            <text class="social-text">微信</text>
+          </view>
+          <view class="social-item">
+            <text class="social-icon">📧</text>
+            <text class="social-text">邮箱</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="register-wrapper">
+        <text class="register-text">还没有账号?</text>
+        <text class="register-link">立即注册</text>
+      </view>
+    </view>
+
+    <view class="login-footer">
+      <text class="footer-text">登录即表示同意</text>
+      <text class="footer-link">《用户协议》</text>
+      <text class="footer-text">和</text>
+      <text class="footer-link">《隐私政策》</text>
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+import { ref, computed } from 'vue'
+
+const loginType = ref<'password' | 'sms'>('password')
+const rememberMe = ref(false)
+const smsCountdown = ref(0)
+
+const form = ref({
+  username: '',
+  password: '',
+  smsCode: ''
+})
+
+const canLogin = computed(() => {
+  if (loginType.value === 'password') {
+    return form.value.username.trim() && form.value.password.trim()
+  } else {
+    return form.value.username.trim() && form.value.smsCode.trim()
+  }
+})
+
+const sendSmsCode = () => {
+  if (!form.value.username.trim()) {
+    uni.showToast({ title: '请输入手机号', icon: 'none' })
+    return
+  }
+  if (smsCountdown.value > 0) return
+  
+  smsCountdown.value = 60
+  uni.showToast({ title: '验证码已发送', icon: 'success' })
+  
+  const timer = setInterval(() => {
+    smsCountdown.value--
+    if (smsCountdown.value <= 0) {
+      clearInterval(timer)
+    }
+  }, 1000)
+}
+
+const handleLogin = () => {
+  if (!canLogin.value) return
+  
+  uni.showLoading({ title: '登录中...' })
+  
+  setTimeout(() => {
+    uni.hideLoading()
+    uni.showToast({ title: '登录成功', icon: 'success' })
+    setTimeout(() => {
+      uni.switchTab({ url: '/pages/index/index' })
+    }, 1500)
+  }, 1000)
+}
+</script>
+
+<style lang="scss" scoped>
+.login-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 60rpx 40rpx;
+  box-sizing: border-box;
+}
+
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0 60rpx;
+  
+  .logo-wrapper {
+    margin-bottom: 30rpx;
+  }
+  
+  .logo-icon {
+    width: 120rpx;
+    height: 120rpx;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+  }
+  
+  .logo-text {
+    font-size: 48rpx;
+    font-weight: bold;
+    color: #fff;
+  }
+  
+  .app-title {
+    font-size: 40rpx;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 10rpx;
+  }
+  
+  .app-subtitle {
+    font-size: 28rpx;
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+.login-form {
+  background: #fff;
+  border-radius: 32rpx;
+  padding: 40rpx;
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.1);
+}
+
+.tabs-wrapper {
+  display: flex;
+  margin-bottom: 40rpx;
+  
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 20rpx;
+    position: relative;
+    
+    &.active .tab-text {
+      color: #667eea;
+      font-weight: 600;
+    }
+  }
+  
+  .tab-text {
+    font-size: 30rpx;
+    color: #666;
+    transition: color 0.3s;
+  }
+  
+  .tab-indicator {
+    position: absolute;
+    bottom: 0;
+    width: 40rpx;
+    height: 6rpx;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 3rpx;
+  }
+}
+
+.form-content {
+  .form-item {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 16rpx;
+    padding: 0 24rpx;
+    margin-bottom: 24rpx;
+    height: 88rpx;
+    position: relative;
+  }
+  
+  .input-icon {
+    width: 48rpx;
+    height: 48rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20rpx;
+  }
+  
+  .icon-text {
+    font-size: 32rpx;
+  }
+  
+  .form-input {
+    flex: 1;
+    height: 100%;
+    font-size: 28rpx;
+    color: #333;
+  }
+  
+  .input-placeholder {
+    color: #999;
+  }
+  
+  .sms-btn {
+    padding: 16rpx 24rpx;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 12rpx;
+    
+    &.disabled {
+      background: #ddd;
+    }
+  }
+  
+  .sms-text {
+    font-size: 24rpx;
+    color: #fff;
+  }
+  
+  .remember-wrapper {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24rpx;
+    
+    .remember-checkbox {
+      width: 36rpx;
+      height: 36rpx;
+      border: 2rpx solid #ddd;
+      border-radius: 6rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12rpx;
+      
+      &.checked {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-color: transparent;
+      }
+    }
+    
+    .check-icon {
+      font-size: 24rpx;
+      color: #fff;
+    }
+    
+    .remember-text {
+      font-size: 26rpx;
+      color: #666;
+    }
+    
+    .forgot-text {
+      margin-left: auto;
+      font-size: 26rpx;
+      color: #667eea;
+    }
+  }
+}
+
+.login-btn {
+  width: 100%;
+  height: 88rpx;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.4);
+  
+  &.disabled {
+    background: #ddd;
+    box-shadow: none;
+  }
+  
+  .login-btn-text {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #fff;
+  }
+}
+
+.other-options {
+  margin-bottom: 32rpx;
+  
+  .divider-text {
+    display: block;
+    text-align: center;
+    font-size: 24rpx;
+    color: #999;
+    margin-bottom: 24rpx;
+  }
+  
+  .social-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 60rpx;
+  }
+  
+  .social-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8rpx;
+  }
+  
+  .social-icon {
+    width: 80rpx;
+    height: 80rpx;
+    background: #f8f9fa;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36rpx;
+  }
+  
+  .social-text {
+    font-size: 24rpx;
+    color: #666;
+  }
+}
+
+.register-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  .register-text {
+    font-size: 26rpx;
+    color: #666;
+  }
+  
+  .register-link {
+    font-size: 26rpx;
+    color: #667eea;
+    margin-left: 8rpx;
+  }
+}
+
+.login-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 40rpx;
+  gap: 8rpx;
+  
+  .footer-text {
+    font-size: 22rpx;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .footer-link {
+    font-size: 22rpx;
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: underline;
+  }
+}
+</style>
