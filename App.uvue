@@ -1,24 +1,36 @@
 <script setup lang="uts">
   import { state, setStatusBarHeight, setSafeArea, setLifeCycleNum, checkSystemTheme } from '@/store/index.uts'
+  import { darkModeClass } from '@/composables/useDark.uts'
 
   const ERROR_LOG_KEY = 'HY_APP_ERROR_LOG'
+  const MAX_ERROR_LOG_SIZE = 100
+  let exitTimer: ReturnType<typeof setTimeout> | null = null
+
+  type ErrorLogEntry = {
+    message: string
+    timestamp: number
+    lifeCycleNum: number
+  }
 
   const saveErrorLog = (err: string) => {
-    const logs = uni.getStorageSync(ERROR_LOG_KEY) || []
-    const errorLog = {
+    const rawLogs = uni.getStorageSync(ERROR_LOG_KEY)
+    const logs: ErrorLogEntry[] = (rawLogs as ErrorLogEntry[]) || []
+    const errorLog: ErrorLogEntry = {
       message: err,
       timestamp: Date.now(),
       lifeCycleNum: state.lifeCycleNum
     }
-    logs.push(errorLog)
-    if (logs.length > 100) {
-      logs.shift()
+    const newLogs = [...logs, errorLog]
+    if (newLogs.length > MAX_ERROR_LOG_SIZE) {
+      newLogs.shift()
     }
-    uni.setStorageSync(ERROR_LOG_KEY, logs)
+    uni.setStorageSync(ERROR_LOG_KEY, newLogs)
   }
 
   onLaunch((res: OnLaunchOptions) => {
+    // #ifdef DEBUG
     console.log('App Launch', res)
+    // #endif
     setLifeCycleNum(state.lifeCycleNum + 1000)
     
     uni.getSystemInfo({
@@ -36,17 +48,23 @@
   })
 
   onAppShow((res: OnShowOptions) => {
+    // #ifdef DEBUG
     console.log('App Show', res)
+    // #endif
     setLifeCycleNum(state.lifeCycleNum + 100)
   })
 
   onAppHide(() => {
+    // #ifdef DEBUG
     console.log('App Hide')
+    // #endif
     setLifeCycleNum(state.lifeCycleNum - 100)
   })
 
   onError((err: string) => {
+    // #ifdef DEBUG
     console.log('App Error', err)
+    // #endif
     saveErrorLog(err)
     
     // #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
@@ -54,10 +72,14 @@
       name: 'uni-app-error',
       options: err,
       success: (res) => {
+        // #ifdef DEBUG
         console.log('Error reported:', res)
+        // #endif
       },
       fail: (error) => {
+        // #ifdef DEBUG
         console.log('Report failed:', error)
+        // #endif
       }
     })
     // #endif
@@ -65,18 +87,27 @@
 
   // #ifdef APP-ANDROID || APP-HARMONY
   onLastPageBackPress(() => {
-    uni.showToast({
-      title: '再按一次退出应用',
-      position: 'bottom'
-    })
-    setTimeout(() => {
+    if (exitTimer) {
       uni.exit()
-    }, 2000)
+    } else {
+      uni.showToast({
+        title: '再按一次退出应用',
+        position: 'bottom'
+      })
+      exitTimer = setTimeout(() => {
+        exitTimer = null
+      }, 2000)
+    }
   })
 
   onExit(() => {
+    // #ifdef DEBUG
     console.log('App Exit')
+    // #endif
     setLifeCycleNum(state.lifeCycleNum - 1000)
+    if (exitTimer) {
+      clearTimeout(exitTimer)
+    }
   })
   // #endif
 </script>

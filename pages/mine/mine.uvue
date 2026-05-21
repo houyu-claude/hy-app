@@ -1,5 +1,5 @@
 <template>
-  <view class="page-container">
+  <view class="page-container" :class="darkModeClass">
     <view class="user-card">
       <view class="avatar">
         <text class="avatar-icon">👤</text>
@@ -19,24 +19,43 @@
     </view>
     
     <view class="footer">
-      <text class="version">v1.0.0</text>
+      <text class="version">v{{ version }}</text>
     </view>
   </view>
 </template>
 
 <script lang="uts" setup>
-  import { ref } from 'vue'
-  import { state, setUserInfo } from '@/store/index.uts'
+  import { computed } from 'vue'
+  import { state } from '@/store/index.uts'
+  import { darkModeClass } from '@/composables/useDark.uts'
 
-  const userInfo = ref(state.userInfo)
+  type MenuItem = {
+    key: string
+    icon: string
+    text: string
+  }
 
-  const menuItems = [
+  const userInfo = computed(() => state.userInfo)
+
+  const version = computed(() => {
+    // #ifdef H5
+    try {
+      const pkg = require('../../package.json')
+      return pkg.version || '1.0.0'
+    } catch {
+      return '1.0.0'
+    }
+    // #endif
+    return '1.0.0'
+  })
+
+  const menuItems: MenuItem[] = [
     { key: 'settings', icon: '⚙️', text: '设置' },
     { key: 'about', icon: 'ℹ️', text: '关于' },
     { key: 'feedback', icon: '💬', text: '意见反馈' }
   ]
 
-  const handleMenuClick = (item: any) => {
+  const handleMenuClick = (item: MenuItem) => {
     uni.showToast({
       title: `点击了${item.text}`,
       icon: 'none'
@@ -44,11 +63,9 @@
   }
 
   onLoad(() => {
+    // #ifdef DEBUG
     console.log('Mine Page Load')
-  })
-
-  onShow(() => {
-    userInfo.value = state.userInfo
+    // #endif
   })
 </script>
 
@@ -141,5 +158,17 @@
   .version {
     font-size: 24rpx;
     color: $uni-text-color-grey;
+  }
+
+  .theme-dark {
+    .page-container {
+      background-color: #1a1a1a;
+    }
+    .menu-list {
+      background-color: #2a2a2a;
+    }
+    .menu-text {
+      color: #fff;
+    }
   }
 </style>

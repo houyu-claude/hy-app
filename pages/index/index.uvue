@@ -1,5 +1,5 @@
 <template>
-  <view class="page-container">
+  <view class="page-container" :class="darkModeClass">
     <view class="content">
       <text class="title">{{ title }}</text>
       <text class="desc">基于 uni-app x 框架</text>
@@ -9,23 +9,32 @@
 
 <script lang="uts" setup>
   import { ref } from 'vue'
+  import { darkModeClass } from '@/composables/useDark.uts'
 
   const title = ref('houyu-app')
 
   onLoad((options) => {
+    // #ifdef DEBUG
     console.log('Index Page Load', options)
+    // #endif
   })
 
   onReady(() => {
+    // #ifdef DEBUG
     console.log('Index Page Ready')
+    // #endif
   })
 
   onShow(() => {
+    // #ifdef DEBUG
     console.log('Index Page Show')
+    // #endif
   })
 
   onHide(() => {
+    // #ifdef DEBUG
     console.log('Index Page Hide')
+    // #endif
   })
 </script>
 
@@ -54,5 +63,11 @@
   .desc {
     font-size: 28rpx;
     color: rgba(255, 255, 255, 0.8);
+  }
+
+  .theme-dark {
+    .page-container {
+      background: linear-gradient(135deg, #2c3e50 0%, #4a69bd 100%);
+    }
   }
 </style>

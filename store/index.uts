@@ -62,12 +62,12 @@ export const checkSystemTheme = () => {
   // #ifdef APP
   uni.getSystemInfo({
     success: (res: GetSystemInfoResult) => {
-      const appTheme = res.appTheme == "auto" ? res.osTheme! : res.appTheme!
+      const appTheme = res.appTheme == "auto" ? (res.osTheme ?? 'light') : (res.appTheme ?? 'light')
       state.isDarkMode = appTheme == 'dark';
     }
   })
   uni.onAppThemeChange((res: AppThemeChangeResult) => {
-    state.isDarkMode = res.appTheme == 'dark';
+    state.isDarkMode = (res.appTheme ?? 'light') == 'dark';
   })
   // #endif
 }

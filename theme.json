@@ -1,16 +1,32 @@
 {
-    "darkmode": true,
-    "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "houyu-app",
-    "navigationBarBackgroundColor": "#ffffff",
-    "backgroundColor": "#f5f5f5",
-    "backgroundColorTop": "#ffffff",
-    "backgroundColorBottom": "#ffffff",
-    "backgroundColorContent": "#f5f5f5",
-    "tabBar": {
-        "color": "#999999",
-        "selectedColor": "#007aff",
-        "backgroundColor": "#ffffff",
-        "borderStyle": "black"
+    "light": {
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "houyu-app",
+        "navigationBarBackgroundColor": "#ffffff",
+        "backgroundColor": "#f5f5f5",
+        "backgroundColorTop": "#ffffff",
+        "backgroundColorBottom": "#ffffff",
+        "backgroundColorContent": "#f5f5f5",
+        "tabBar": {
+            "color": "#999999",
+            "selectedColor": "#007aff",
+            "backgroundColor": "#ffffff",
+            "borderStyle": "black"
+        }
+    },
+    "dark": {
+        "navigationBarTextStyle": "white",
+        "navigationBarTitleText": "houyu-app",
+        "navigationBarBackgroundColor": "#1a1a1a",
+        "backgroundColor": "#1a1a1a",
+        "backgroundColorTop": "#1a1a1a",
+        "backgroundColorBottom": "#1a1a1a",
+        "backgroundColorContent": "#1a1a1a",
+        "tabBar": {
+            "color": "#666666",
+            "selectedColor": "#007aff",
+            "backgroundColor": "#2a2a2a",
+            "borderStyle": "white"
+        }
     }
 }

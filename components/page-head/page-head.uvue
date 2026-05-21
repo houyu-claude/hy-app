@@ -1,35 +1,79 @@
 <template>
   <view class="page-head">
+    <view class="page-head-left" @click="handleBack" v-if="showBack">
+      <text class="page-head-back">‹</text>
+    </view>
     <view class="page-head-title-box">
       <text class="page-head-title">{{ title }}</text>
+    </view>
+    <view class="page-head-right" @click="handleRefresh" v-if="showRefresh">
+      <text class="page-head-refresh">↻</text>
     </view>
   </view>
 </template>
 
 <script lang="uts" setup>
   const props = defineProps({
-    title: { type: String, default: "" }
+    title: { type: String, default: "" },
+    showBack: { type: Boolean, default: false },
+    showRefresh: { type: Boolean, default: false }
   })
 
   const emit = defineEmits(['back', 'refresh'])
+
+  const handleBack = () => {
+    emit('back')
+    uni.navigateBack()
+  }
+
+  const handleRefresh = () => {
+    emit('refresh')
+  }
 </script>
 
-<style lang="scss" styleIsolation="app">
+<style lang="scss" styleIsolation="shared">
   .page-head {
-    padding: 20rpx;
     display: flex;
     align-items: center;
+    padding: 20rpx;
+    height: 88rpx;
+    box-sizing: border-box;
+  }
+
+  .page-head-left {
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-head-back {
+    font-size: 48rpx;
+    color: $uni-text-color;
   }
 
   .page-head-title-box {
-    padding: 0 20rpx;
-    border-bottom: 1px solid $uni-border-color;
+    flex: 1;
+    text-align: center;
   }
 
   .page-head-title {
-    line-height: 80rpx;
-    color: $uni-text-color;
     font-size: $uni-font-size-lg;
     font-weight: 600;
+    color: $uni-text-color;
+  }
+
+  .page-head-right {
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-head-refresh {
+    font-size: 32rpx;
+    color: $uni-text-color;
   }
 </style>
