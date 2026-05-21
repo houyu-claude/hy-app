@@ -16,7 +16,10 @@
       "Bash(cd /d D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\hy-app)",
       "Bash(dir /s /b)",
       "PowerShell(cd \"D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\hy-app\"; git ls-files | Where-Object { $_ -match '^dist/' } | Select-Object -First 10)",
-      "Bash(dir \"D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\hy-app\" /b /a)"
+      "Bash(dir \"D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\hy-app\" /b /a)",
+      "Bash(ls -la static/)",
+      "Bash(dir static *)",
+      "Bash(find static/ -type f)"
     ]
   }
 }

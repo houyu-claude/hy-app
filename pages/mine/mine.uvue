@@ -10,10 +10,10 @@
       </view>
     </view>
     
-    <view class="menu-list">
+    <view class="menu-list" :class="{ 'menu-list-dark': isDark }">
       <view class="menu-item" v-for="item in menuItems" :key="item.key" @click="handleMenuClick(item)">
         <text class="menu-icon">{{ item.icon }}</text>
-        <text class="menu-text">{{ item.text }}</text>
+        <text class="menu-text" :class="{ 'menu-text-dark': isDark }">{{ item.text }}</text>
         <text class="menu-arrow">›</text>
       </view>
     </view>
@@ -36,12 +36,21 @@
   }
 
   const userInfo = computed(() => state.userInfo)
+  const isDark = computed(() => state.isDarkMode)
 
   const version = computed(() => {
     // #ifdef H5
     try {
       const pkg = require('../../package.json')
       return pkg.version || '1.0.0'
+    } catch {
+      return '1.0.0'
+    }
+    // #endif
+    // #ifdef APP || MP-WEIXIN
+    try {
+      const info = uni.getAppBaseInfo()
+      return info.appVersion || '1.0.0'
     } catch {
       return '1.0.0'
     }
@@ -74,6 +83,10 @@
     min-height: 100vh;
     background-color: $uni-bg-color-grey;
     padding-bottom: calc(env(safe-area-inset-bottom) + 100rpx);
+  }
+
+  .page-container.theme-dark {
+    background-color: #1a1a1a;
   }
 
   .user-card {
@@ -123,6 +136,10 @@
     overflow: hidden;
   }
 
+  .menu-list-dark {
+    background-color: #2a2a2a;
+  }
+
   .menu-item {
     display: flex;
     align-items: center;
@@ -145,6 +162,10 @@
     color: $uni-text-color;
   }
 
+  .menu-text-dark {
+    color: #fff;
+  }
+
   .menu-arrow {
     font-size: 36rpx;
     color: $uni-text-color-grey;
@@ -158,17 +179,5 @@
   .version {
     font-size: 24rpx;
     color: $uni-text-color-grey;
-  }
-
-  .theme-dark {
-    .page-container {
-      background-color: #1a1a1a;
-    }
-    .menu-list {
-      background-color: #2a2a2a;
-    }
-    .menu-text {
-      color: #fff;
-    }
   }
 </style>

@@ -1,6 +1,5 @@
 <script setup lang="uts">
   import { state, setStatusBarHeight, setSafeArea, setLifeCycleNum, checkSystemTheme } from '@/store/index.uts'
-  import { darkModeClass } from '@/composables/useDark.uts'
 
   const ERROR_LOG_KEY = 'HY_APP_ERROR_LOG'
   const MAX_ERROR_LOG_SIZE = 100
@@ -13,18 +12,21 @@
   }
 
   const saveErrorLog = (err: string) => {
-    const rawLogs = uni.getStorageSync(ERROR_LOG_KEY)
-    const logs: ErrorLogEntry[] = (rawLogs as ErrorLogEntry[]) || []
-    const errorLog: ErrorLogEntry = {
-      message: err,
-      timestamp: Date.now(),
-      lifeCycleNum: state.lifeCycleNum
+    try {
+      const rawLogs = uni.getStorageSync(ERROR_LOG_KEY)
+      const parsed = JSON.parse(rawLogs as string)
+      const logs: ErrorLogEntry[] = Array.isArray(parsed) ? (parsed as ErrorLogEntry[]) : []
+      const errorLog: ErrorLogEntry = {
+        message: err,
+        timestamp: Date.now(),
+        lifeCycleNum: state.lifeCycleNum
+      }
+      const appendedLogs = [...logs, errorLog]
+      const newLogs = appendedLogs.length > MAX_ERROR_LOG_SIZE ? appendedLogs.slice(1) : appendedLogs
+      uni.setStorageSync(ERROR_LOG_KEY, JSON.stringify(newLogs))
+    } catch {
+      
     }
-    const newLogs = [...logs, errorLog]
-    if (newLogs.length > MAX_ERROR_LOG_SIZE) {
-      newLogs.shift()
-    }
-    uni.setStorageSync(ERROR_LOG_KEY, newLogs)
   }
 
   onLaunch((res: OnLaunchOptions) => {
