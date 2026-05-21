@@ -14,7 +14,8 @@
   const saveErrorLog = (err: string) => {
     try {
       const rawLogs = uni.getStorageSync(ERROR_LOG_KEY)
-      const parsed = JSON.parse(rawLogs as string)
+      const raw = typeof rawLogs === 'string' ? rawLogs : '[]'
+      const parsed = JSON.parse(raw)
       const logs: ErrorLogEntry[] = Array.isArray(parsed) ? (parsed as ErrorLogEntry[]) : []
       const errorLog: ErrorLogEntry = {
         message: err,
@@ -69,7 +70,8 @@
     // #endif
     saveErrorLog(err)
     
-    // #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY
+    // #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY || APP-IOS
+    // iOS 平台已加入支持，uni.report 在 iOS 上同样可用
     uni.report({
       name: 'uni-app-error',
       options: err,
@@ -90,6 +92,8 @@
   // #ifdef APP-ANDROID || APP-HARMONY
   onLastPageBackPress(() => {
     if (exitTimer) {
+      clearTimeout(exitTimer)
+      exitTimer = null
       uni.exit()
     } else {
       uni.showToast({
@@ -109,6 +113,7 @@
     setLifeCycleNum(state.lifeCycleNum - 1000)
     if (exitTimer) {
       clearTimeout(exitTimer)
+      exitTimer = null
     }
   })
   // #endif

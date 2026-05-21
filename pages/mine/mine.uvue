@@ -1,5 +1,5 @@
 <template>
-  <view class="page-container" :class="darkModeClass">
+  <view class="page-container" :class="darkModeClass" :style="{ paddingBottom: paddingBottomStyle }">
     <view class="user-card">
       <view class="avatar">
         <text class="avatar-icon">👤</text>
@@ -10,10 +10,10 @@
       </view>
     </view>
     
-    <view class="menu-list" :class="{ 'menu-list-dark': isDark }">
+    <view class="menu-list">
       <view class="menu-item" v-for="item in menuItems" :key="item.key" @click="handleMenuClick(item)">
         <text class="menu-icon">{{ item.icon }}</text>
-        <text class="menu-text" :class="{ 'menu-text-dark': isDark }">{{ item.text }}</text>
+        <text class="menu-text">{{ item.text }}</text>
         <text class="menu-arrow">›</text>
       </view>
     </view>
@@ -36,17 +36,13 @@
   }
 
   const userInfo = computed(() => state.userInfo)
-  const isDark = computed(() => state.isDarkMode)
+
+  const paddingBottomStyle = computed(() => {
+    const safeAreaBottom = state.safeArea?.bottom || 0
+    return `${safeAreaBottom + 100}rpx`
+  })
 
   const version = computed(() => {
-    // #ifdef H5
-    try {
-      const pkg = require('../../package.json')
-      return pkg.version || '1.0.0'
-    } catch {
-      return '1.0.0'
-    }
-    // #endif
     // #ifdef APP || MP-WEIXIN
     try {
       const info = uni.getAppBaseInfo()
@@ -82,7 +78,6 @@
   .page-container {
     min-height: 100vh;
     background-color: $uni-bg-color-grey;
-    padding-bottom: calc(env(safe-area-inset-bottom) + 100rpx);
   }
 
   .page-container.theme-dark {
@@ -136,7 +131,7 @@
     overflow: hidden;
   }
 
-  .menu-list-dark {
+  .page-container.theme-dark .menu-list {
     background-color: #2a2a2a;
   }
 
@@ -162,7 +157,7 @@
     color: $uni-text-color;
   }
 
-  .menu-text-dark {
+  .page-container.theme-dark .menu-text {
     color: #fff;
   }
 

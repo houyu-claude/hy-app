@@ -51,8 +51,14 @@ export const setUserInfo = (userInfo: UserInfo | null) => {
   state.userInfo = userInfo
 }
 
+const resolveTheme = (appTheme: string, osTheme?: string): boolean => {
+  const resolvedTheme = appTheme == "auto" ? (osTheme ?? 'light') : (appTheme ?? 'light')
+  return resolvedTheme == 'dark'
+}
+
 export const checkSystemTheme = () => {
   // #ifdef WEB || MP-WEIXIN
+  uni.offHostThemeChange()
   const info = uni.getAppBaseInfo();
   state.isDarkMode = info.hostTheme === 'dark';
   uni.onHostThemeChange((result) => {
@@ -60,14 +66,14 @@ export const checkSystemTheme = () => {
   });
   // #endif
   // #ifdef APP
+  uni.offAppThemeChange()
   uni.getSystemInfo({
     success: (res: GetSystemInfoResult) => {
-      const appTheme = res.appTheme == "auto" ? (res.osTheme ?? 'light') : (res.appTheme ?? 'light')
-      state.isDarkMode = appTheme == 'dark';
+      state.isDarkMode = resolveTheme(res.appTheme ?? 'light', res.osTheme)
     }
   })
   uni.onAppThemeChange((res: AppThemeChangeResult) => {
-    state.isDarkMode = (res.appTheme ?? 'light') == 'dark';
+    state.isDarkMode = resolveTheme(res.appTheme ?? 'light', undefined)
   })
   // #endif
 }

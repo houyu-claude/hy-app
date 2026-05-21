@@ -32,7 +32,7 @@ hy-app/
 │   ├── index/                  # 首页
 │   └── mine/                   # 我的页面
 └── static/
-    └── tab/                    # TabBar图标
+    └── tabbar/                 # TabBar图标
 ```
 
 ## 功能特性

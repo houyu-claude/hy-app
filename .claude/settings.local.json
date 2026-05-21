@@ -19,7 +19,8 @@
       "Bash(dir \"D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\hy-app\" /b /a)",
       "Bash(ls -la static/)",
       "Bash(dir static *)",
-      "Bash(find static/ -type f)"
+      "Bash(find static/ -type f)",
+      "Bash(dir *)"
     ]
   }
 }

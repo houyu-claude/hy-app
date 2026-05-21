@@ -22,8 +22,11 @@
   const emit = defineEmits(['back', 'refresh'])
 
   const handleBack = () => {
-    emit('back')
-    uni.navigateBack()
+    const pages = getCurrentPages()
+    if (pages.length > 1) {
+      uni.navigateBack()
+      emit('back')
+    }
   }
 
   const handleRefresh = () => {
@@ -31,7 +34,7 @@
   }
 </script>
 
-<style lang="scss" styleIsolation="shared">
+<style lang="scss" styleIsolation="isolated">
   .page-head {
     display: flex;
     align-items: center;
@@ -50,7 +53,7 @@
 
   .page-head-back {
     font-size: 48rpx;
-    color: $uni-text-color;
+    color: #333;
   }
 
   .page-head-title-box {
@@ -59,9 +62,9 @@
   }
 
   .page-head-title {
-    font-size: $uni-font-size-lg;
+    font-size: 32rpx;
     font-weight: 600;
-    color: $uni-text-color;
+    color: #333;
   }
 
   .page-head-right {
@@ -74,6 +77,6 @@
 
   .page-head-refresh {
     font-size: 32rpx;
-    color: $uni-text-color;
+    color: #333;
   }
 </style>
