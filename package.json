@@ -1,0 +1,52 @@
+{
+    "id": "hy-app",
+    "name": "hy-app",
+    "displayName": "houyu-app",
+    "version": "1.0.0",
+    "description": "基于uni-app x框架的跨平台前端应用",
+    "scripts": {},
+    "repository": "",
+    "keywords": [
+        "uni-app-x",
+        "uniapp",
+        "hybrid"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {},
+    "engines": {
+        "HBuilderX": "^3.99"
+    },
+    "dcloudext": {
+        "type": "uniapp-template-project"
+    },
+    "uni_modules": {
+        "dependencies": [],
+        "encrypt": [],
+        "platforms": {
+            "cloud": {
+                "tcb": "n",
+                "aliyun": "n"
+            },
+            "client": {
+                "App": {
+                    "app-vue": "n",
+                    "app-nvue": "n",
+                    "app-uvue": "y"
+                },
+                "H5-mobile": {},
+                "H5-pc": {},
+                "小程序": {
+                    "微信": "y",
+                    "阿里": "n",
+                    "百度": "n",
+                    "字节跳动": "n"
+                },
+                "Vue": {
+                    "vue2": "n",
+                    "vue3": "y"
+                }
+            }
+        }
+    }
+}

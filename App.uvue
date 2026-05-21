@@ -1,0 +1,25 @@
+<script setup lang="uts">
+  onLaunch((res: OnLaunchOptions) => {
+    console.log('App Launch', res)
+  })
+
+  onAppShow((res: OnShowOptions) => {
+    console.log('App Show', res)
+  })
+
+  onAppHide(() => {
+    console.log('App Hide')
+  })
+
+  onError((err: any) => {
+    console.log('App Error', err)
+  })
+</script>
+
+<style>
+  @import "./common/uni.css";
+
+  page {
+    background-color: #f5f5f5;
+  }
+</style>
