@@ -33,18 +33,75 @@ const STORAGE_KEYS = {
   ENCRYPTED_TOKEN: 'HY_ENCRYPTED_TOKEN'
 }
 
-const ENCRYPT_KEY = 'houyu_app_key_2026'
+const getEncryptKey = (): string => {
+  try {
+    const sysInfo = uni.getSystemInfoSync?.() || {}
+    const deviceId = sysInfo.deviceId || sysInfo.platform || 'houyu_default'
+    const timestamp = Date.now().toString(36).slice(-8)
+    return `${deviceId}_${timestamp}_key`.slice(0, 32)
+  } catch {
+    return 'houyu_app_default_key_2026'
+  }
+}
+
+const base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+const base64Encode = (str: string): string => {
+  let result = ''
+  let i = 0
+  const charCodeArray = str.split('').map(c => c.charCodeAt(0))
+  
+  while (i < charCodeArray.length) {
+    const byte1 = charCodeArray[i++]
+    const byte2 = charCodeArray[i++]
+    const byte3 = charCodeArray[i++]
+    
+    const enc1 = byte1 >> 2
+    const enc2 = ((byte1 & 3) << 4) | (byte2 >> 4)
+    const enc3 = ((byte2 & 15) << 2) | (byte3 >> 6)
+    const enc4 = byte3 & 63
+    
+    result += base64Chars[enc1] + base64Chars[enc2] + 
+              (byte2 === undefined ? '=' : base64Chars[enc3]) + 
+              (byte3 === undefined ? '=' : base64Chars[enc4])
+  }
+  
+  return result
+}
+
+const base64Decode = (str: string): string => {
+  const base64Str = str.replace(/[^A-Za-z0-9+/=]/g, '')
+  let result = ''
+  let i = 0
+  
+  while (i < base64Str.length) {
+    const enc1 = base64Chars.indexOf(base64Str[i++])
+    const enc2 = base64Chars.indexOf(base64Str[i++])
+    const enc3 = base64Chars.indexOf(base64Str[i++])
+    const enc4 = base64Chars.indexOf(base64Str[i++])
+    
+    const byte1 = (enc1 << 2) | (enc2 >> 4)
+    const byte2 = ((enc2 & 15) << 4) | (enc3 >> 2)
+    const byte3 = ((enc3 & 3) << 6) | enc4
+    
+    result += String.fromCharCode(byte1)
+    if (enc3 !== 64) result += String.fromCharCode(byte2)
+    if (enc4 !== 64) result += String.fromCharCode(byte3)
+  }
+  
+  return result
+}
 
 const xorEncrypt = (text: string, key: string): string => {
   let result = ''
   for (let i = 0; i < text.length; i++) {
     result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length))
   }
-  return btoa(result)
+  return base64Encode(result)
 }
 
 const xorDecrypt = (encrypted: string, key: string): string => {
-  const decoded = atob(encrypted)
+  const decoded = base64Decode(encrypted)
   let result = ''
   for (let i = 0; i < decoded.length; i++) {
     result += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length))
@@ -91,8 +148,9 @@ export const setUserInfo = (userInfo: UserInfo | null) => {
 
 export const setTokenInfo = (tokenInfo: TokenInfo | null) => {
   state.tokenInfo = tokenInfo
+  const encryptKey = getEncryptKey()
   if (tokenInfo) {
-    const encrypted = xorEncrypt(JSON.stringify(tokenInfo), ENCRYPT_KEY)
+    const encrypted = xorEncrypt(JSON.stringify(tokenInfo), encryptKey)
     uni.setStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN, encrypted)
   } else {
     uni.removeStorageSync(STORAGE_KEYS.TOKEN_INFO)
@@ -176,7 +234,8 @@ export const restoreLoginState = (): boolean => {
     const encryptedToken = uni.getStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN)
     if (encryptedToken) {
       try {
-        const tokenInfoStr = xorDecrypt(encryptedToken, ENCRYPT_KEY)
+        const encryptKey = getEncryptKey()
+        const tokenInfoStr = xorDecrypt(encryptedToken, encryptKey)
         state.tokenInfo = JSON.parse(tokenInfoStr) as TokenInfo
       } catch {
         state.tokenInfo = null

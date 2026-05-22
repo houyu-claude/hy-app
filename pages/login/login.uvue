@@ -51,10 +51,11 @@
           <input 
             class="form-input" 
             v-model="form.password" 
-            placeholder="请输入密码"
+            placeholder="请输入密码（至少6位）"
             type="password"
             placeholder-class="input-placeholder"
           />
+          <text v-if="!isPasswordValid && form.password" class="password-tip">密码至少6位</text>
         </view>
 
         <view class="form-item" v-else>
@@ -64,7 +65,7 @@
           <input 
             class="form-input" 
             v-model="form.smsCode" 
-            placeholder="请输入验证码"
+            placeholder="请输入6位验证码"
             type="number"
             placeholder-class="input-placeholder"
           />
@@ -134,7 +135,7 @@
 <script setup lang="uts">
 import { ref, computed } from 'vue'
 import { setUserInfo, setTokenInfo, TokenInfo } from '@/store/index.uts'
-import { authApi } from '@/api/request.uts'
+import { authApi, AppError } from '@/api/request.uts'
 
 const loginType = ref<'password' | 'sms'>('password')
 const rememberMe = ref(false)
@@ -147,21 +148,72 @@ const form = ref({
   smsCode: ''
 })
 
-const canLogin = computed(() => {
-  if (loginType.value === 'password') {
-    return form.value.username.trim() && form.value.password.trim()
-  } else {
-    return form.value.username.trim() && form.value.smsCode.trim()
-  }
+const PASSWORD_MIN_LENGTH = 6
+const SMS_CODE_LENGTH = 6
+
+const isPasswordValid = computed(() => {
+  return form.value.password.length >= PASSWORD_MIN_LENGTH
 })
 
-const canSendSms = computed(() => {
-  const phone = form.value.username.trim()
-  return phone.length === 11
+const isSmsCodeValid = computed(() => {
+  return form.value.smsCode.length === SMS_CODE_LENGTH
+})
+
+const canLogin = computed(() => {
+  if (loginType.value === 'password') {
+    return form.value.username.trim() && form.value.password.trim() && isPasswordValid.value
+  } else {
+    return form.value.username.trim() && isSmsCodeValid.value && validatePhone(form.value.username)
+  }
 })
 
 const validatePhone = (phone: string): boolean => {
   return /^1[3-9]\d{9}$/.test(phone)
+}
+
+const canSendSms = computed(() => {
+  return validatePhone(form.value.username.trim())
+})
+
+const getLoginErrorMsg = (code: number): string => {
+  const errorMap: Record<number, string> = {
+    1001: '用户名不存在',
+    1002: '密码错误',
+    1003: '验证码错误或已过期',
+    1004: '账号已被锁定，请稍后重试',
+    1005: '该手机号未注册',
+    1006: '验证码发送过于频繁',
+    401: '登录已过期，请重新登录',
+    429: '请求过于频繁，请稍后重试',
+    500: '服务器繁忙，请稍后重试'
+  }
+  return errorMap[code] || '登录失败，请稍后重试'
+}
+
+const getSmsErrorMsg = (code: number): string => {
+  const errorMap: Record<number, string> = {
+    1005: '该手机号未注册',
+    1006: '该号码已被限制，请明日再试',
+    429: '请求过于频繁，请稍后重试',
+    500: '短信服务暂时不可用，请稍后重试'
+  }
+  return errorMap[code] || '短信发送失败，请稍后重试'
+}
+
+const handleError = (error: AppError, context: 'login' | 'sms') => {
+  let message = error.message
+  
+  if (error.type === 'network') {
+    message = '网络异常，请检查网络连接'
+  } else if (error.type === 'timeout') {
+    message = '请求超时，请稍后重试'
+  } else if (error.type === 'system') {
+    message = '系统繁忙，请稍后重试'
+  } else if (error.code !== 0) {
+    message = context === 'login' ? getLoginErrorMsg(error.code) : getSmsErrorMsg(error.code)
+  }
+  
+  uni.showToast({ title: message, icon: 'none' })
 }
 
 const sendSmsCode = async () => {
@@ -193,20 +245,11 @@ const sendSmsCode = async () => {
     uni.showToast({ title: '验证码已发送', icon: 'success' })
   } catch (error) {
     console.error('发送验证码失败:', error)
-    const errMsg = error instanceof Error ? error.message : '发送失败'
-    let toastMsg = '短信发送失败，请稍后重试'
-    
-    if (errMsg.includes('429') || errMsg.includes('频繁')) {
-      toastMsg = '该号码已被限制，请明日再试'
-    } else if (errMsg.includes('网络')) {
-      toastMsg = '网络异常，请检查网络连接'
-    } else if (errMsg.includes('格式')) {
-      toastMsg = '手机号格式错误，请重新输入'
-    } else if (errMsg.includes('服务') || errMsg.includes('系统')) {
-      toastMsg = '短信服务暂时不可用，请稍后重试'
+    if (error instanceof AppError) {
+      handleError(error, 'sms')
+    } else {
+      uni.showToast({ title: '短信发送失败，请稍后重试', icon: 'none' })
     }
-    
-    uni.showToast({ title: toastMsg, icon: 'none' })
   }
 }
 
@@ -217,6 +260,11 @@ const handleLogin = async () => {
   
   if (loginType.value === 'sms' && !validatePhone(username)) {
     uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
+    return
+  }
+
+  if (loginType.value === 'password' && !isPasswordValid.value) {
+    uni.showToast({ title: '密码至少需要6位', icon: 'none' })
     return
   }
 
@@ -254,6 +302,11 @@ const handleLogin = async () => {
     }
   } catch (error) {
     console.error('登录失败:', error)
+    if (error instanceof AppError) {
+      handleError(error, 'login')
+    } else {
+      uni.showToast({ title: '登录失败，请稍后重试', icon: 'none' })
+    }
   } finally {
     isLoading.value = false
   }
@@ -403,6 +456,13 @@ const showPrivacy = () => {
   
   .input-placeholder {
     color: #999;
+  }
+  
+  .password-tip {
+    position: absolute;
+    right: 24rpx;
+    font-size: 22rpx;
+    color: #ff6b6b;
   }
   
   .sms-btn {

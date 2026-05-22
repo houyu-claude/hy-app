@@ -32,6 +32,7 @@
   import { computed } from 'vue'
   import { state, clearLoginState, isLoggedIn } from '@/store/index.uts'
   import { darkModeClass } from '@/composables/useDark.uts'
+  import { authApi, AppError } from '@/api/request.uts'
 
   type MenuItem = {
     key: string
@@ -98,19 +99,30 @@
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     uni.showModal({
       title: '退出登录',
       content: '确定要退出登录吗？',
       confirmColor: '#667eea',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          clearLoginState()
-          uni.showToast({ title: '已退出登录', icon: 'success' })
+          uni.showLoading({ title: '退出中...' })
           
-          setTimeout(() => {
-            uni.switchTab({ url: '/pages/index/index' })
-          }, 1500)
+          try {
+            await authApi.logout()
+          } catch (error) {
+            if (!(error instanceof AppError && error.type === 'auth')) {
+              console.error('Logout API failed:', error)
+            }
+          } finally {
+            clearLoginState()
+            uni.hideLoading()
+            uni.showToast({ title: '已退出登录', icon: 'success' })
+            
+            setTimeout(() => {
+              uni.switchTab({ url: '/pages/index/index' })
+            }, 1500)
+          }
         }
       }
     })
