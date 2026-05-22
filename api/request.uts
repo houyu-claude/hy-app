@@ -29,7 +29,26 @@ export class AppError extends Error {
   }
 }
 
-const BASE_URL = '/api'
+const getBaseUrl = (): string => {
+  // #ifdef H5
+  const envBaseUrl = process.env?.API_BASE_URL
+  if (envBaseUrl) {
+    return envBaseUrl
+  }
+  // #endif
+  
+  // #ifdef MP-WEIXIN
+  return '/api'
+  // #endif
+  
+  // #ifdef APP
+  return 'https://api.houyu-app.com'
+  // #endif
+  
+  return '/api'
+}
+
+const BASE_URL = getBaseUrl()
 const DEFAULT_TIMEOUT = 30000
 
 const checkNetwork = (): Promise<boolean> => {

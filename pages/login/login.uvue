@@ -71,7 +71,7 @@
           />
           <view 
             class="sms-btn" 
-            :class="{ disabled: !canSendSms || smsCountdown > 0 }"
+            :class="{ disabled: !canSendSms || smsCountdown > 0 || isSendingSms }"
             @click="sendSmsCode"
           >
             <text class="sms-text">{{ smsCountdown > 0 ? smsCountdown + 's' : '获取验证码' }}</text>
@@ -141,6 +141,7 @@ const loginType = ref<'password' | 'sms'>('password')
 const rememberMe = ref(false)
 const smsCountdown = ref(0)
 const isLoading = ref(false)
+const isSendingSms = ref(false)
 
 const form = ref({
   username: '',
@@ -216,6 +217,10 @@ const handleError = (error: AppError, context: 'login' | 'sms') => {
   uni.showToast({ title: message, icon: 'none' })
 }
 
+const validateSmsCode = (code: string): boolean => {
+  return /^\d{6}$/.test(code)
+}
+
 const sendSmsCode = async () => {
   const phone = form.value.username.trim()
   
@@ -225,12 +230,16 @@ const sendSmsCode = async () => {
   }
   
   if (!validatePhone(phone)) {
-    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
+    uni.showToast({ title: '请输入正确的手机号格式（11位数字）', icon: 'none' })
     return
   }
   
   if (smsCountdown.value > 0) return
+  
+  if (isSendingSms.value) return
 
+  isSendingSms.value = true
+  
   try {
     await authApi.sendSmsCode(phone)
     smsCountdown.value = 60
@@ -242,7 +251,7 @@ const sendSmsCode = async () => {
       }
     }, 1000)
     
-    uni.showToast({ title: '验证码已发送', icon: 'success' })
+    uni.showToast({ title: '验证码已发送，请注意查收', icon: 'success' })
   } catch (error) {
     console.error('发送验证码失败:', error)
     if (error instanceof AppError) {
@@ -250,6 +259,8 @@ const sendSmsCode = async () => {
     } else {
       uni.showToast({ title: '短信发送失败，请稍后重试', icon: 'none' })
     }
+  } finally {
+    isSendingSms.value = false
   }
 }
 
@@ -258,14 +269,21 @@ const handleLogin = async () => {
   
   const username = form.value.username.trim()
   
-  if (loginType.value === 'sms' && !validatePhone(username)) {
-    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
-    return
-  }
-
-  if (loginType.value === 'password' && !isPasswordValid.value) {
-    uni.showToast({ title: '密码至少需要6位', icon: 'none' })
-    return
+  if (loginType.value === 'sms') {
+    if (!validatePhone(username)) {
+      uni.showToast({ title: '请输入正确的手机号格式（11位数字）', icon: 'none' })
+      return
+    }
+    
+    if (!validateSmsCode(form.value.smsCode)) {
+      uni.showToast({ title: '请输入6位数字验证码', icon: 'none' })
+      return
+    }
+  } else {
+    if (!isPasswordValid.value) {
+      uni.showToast({ title: '密码至少需要6位', icon: 'none' })
+      return
+    }
   }
 
   isLoading.value = true

@@ -18,6 +18,13 @@ export type TokenInfo = {
   expiresAt: number
 }
 
+export class CryptoInitError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'CryptoInitError'
+  }
+}
+
 type State = {
   lifeCycleNum: number
   statusBarHeight: number
@@ -33,14 +40,33 @@ const STORAGE_KEYS = {
   ENCRYPTED_TOKEN: 'HY_ENCRYPTED_TOKEN'
 }
 
-const getEncryptKey = (): string => {
+let encryptKey: string | null = null
+
+const initEncryptKey = (): string => {
+  if (encryptKey) {
+    return encryptKey
+  }
+  
   try {
     const sysInfo = uni.getSystemInfoSync?.() || {}
-    const deviceId = sysInfo.deviceId || sysInfo.platform || 'houyu_default'
-    const timestamp = Date.now().toString(36).slice(-8)
-    return `${deviceId}_${timestamp}_key`.slice(0, 32)
-  } catch {
-    return 'houyu_app_default_key_2026'
+    const deviceId = sysInfo.deviceId || sysInfo.platform || sysInfo.model
+    
+    if (!deviceId) {
+      throw new CryptoInitError('无法获取设备标识，无法初始化加密')
+    }
+    
+    let hash = 0
+    for (let i = 0; i < deviceId.length; i++) {
+      const char = deviceId.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash
+    }
+    
+    const key = Math.abs(hash).toString(36).padStart(8, '0') + 'hy_secure_key_'
+    encryptKey = key.slice(0, 32)
+    return encryptKey
+  } catch (error) {
+    throw new CryptoInitError('加密初始化失败')
   }
 }
 
@@ -92,7 +118,8 @@ const base64Decode = (str: string): string => {
   return result
 }
 
-const xorEncrypt = (text: string, key: string): string => {
+const xorEncrypt = (text: string): string => {
+  const key = initEncryptKey()
   let result = ''
   for (let i = 0; i < text.length; i++) {
     result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length))
@@ -100,7 +127,8 @@ const xorEncrypt = (text: string, key: string): string => {
   return base64Encode(result)
 }
 
-const xorDecrypt = (encrypted: string, key: string): string => {
+const xorDecrypt = (encrypted: string): string => {
+  const key = initEncryptKey()
   const decoded = base64Decode(encrypted)
   let result = ''
   for (let i = 0; i < decoded.length; i++) {
@@ -146,15 +174,20 @@ export const setUserInfo = (userInfo: UserInfo | null) => {
   }
 }
 
-export const setTokenInfo = (tokenInfo: TokenInfo | null) => {
+export const setTokenInfo = (tokenInfo: TokenInfo | null): boolean => {
   state.tokenInfo = tokenInfo
-  const encryptKey = getEncryptKey()
-  if (tokenInfo) {
-    const encrypted = xorEncrypt(JSON.stringify(tokenInfo), encryptKey)
-    uni.setStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN, encrypted)
-  } else {
-    uni.removeStorageSync(STORAGE_KEYS.TOKEN_INFO)
-    uni.removeStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN)
+  try {
+    if (tokenInfo) {
+      const encrypted = xorEncrypt(JSON.stringify(tokenInfo))
+      uni.setStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN, encrypted)
+    } else {
+      uni.removeStorageSync(STORAGE_KEYS.TOKEN_INFO)
+      uni.removeStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN)
+    }
+    return true
+  } catch (error) {
+    console.error('Token存储失败:', error)
+    return false
   }
 }
 
@@ -234,11 +267,11 @@ export const restoreLoginState = (): boolean => {
     const encryptedToken = uni.getStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN)
     if (encryptedToken) {
       try {
-        const encryptKey = getEncryptKey()
-        const tokenInfoStr = xorDecrypt(encryptedToken, encryptKey)
+        const tokenInfoStr = xorDecrypt(encryptedToken)
         state.tokenInfo = JSON.parse(tokenInfoStr) as TokenInfo
       } catch {
         state.tokenInfo = null
+        uni.removeStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN)
       }
     }
     
