@@ -1,5 +1,5 @@
 <script setup lang="uts">
-  import { state, setStatusBarHeight, setSafeArea, setLifeCycleNum, checkSystemTheme } from '@/store/index.uts'
+  import { state, setStatusBarHeight, setSafeArea, setLifeCycleNum, checkSystemTheme, restoreLoginState, isLoggedIn } from '@/store/index.uts'
 
   const ERROR_LOG_KEY = 'HY_APP_ERROR_LOG'
   const MAX_ERROR_LOG_SIZE = 100
@@ -30,6 +30,20 @@
     }
   }
 
+  const checkAuthOnShow = () => {
+    const pages = getCurrentPages()
+    if (pages.length === 0) return
+    
+    const currentPage = pages[pages.length - 1]
+    const route = '/' + currentPage.route
+
+    const protectedPages = ['/pages/mine/mine']
+    
+    if (protectedPages.includes(route) && !isLoggedIn()) {
+      uni.redirectTo({ url: '/pages/login/login' })
+    }
+  }
+
   onLaunch((res: OnLaunchOptions) => {
     // #ifdef DEBUG
     console.log('App Launch', res)
@@ -48,6 +62,8 @@
     })
     
     checkSystemTheme()
+    
+    restoreLoginState()
   })
 
   onAppShow((res: OnShowOptions) => {
@@ -55,6 +71,8 @@
     console.log('App Show', res)
     // #endif
     setLifeCycleNum(state.lifeCycleNum + 100)
+    
+    checkAuthOnShow()
   })
 
   onAppHide(() => {
@@ -71,7 +89,6 @@
     saveErrorLog(err)
     
     // #ifdef APP-ANDROID || WEB || MP-WEIXIN || APP-HARMONY || APP-IOS
-    // iOS 平台已加入支持，uni.report 在 iOS 上同样可用
     uni.report({
       name: 'uni-app-error',
       options: err,

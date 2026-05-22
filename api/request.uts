@@ -1,0 +1,183 @@
+import { state, setTokenInfo, clearLoginState, refreshToken } from '@/store/index.uts'
+
+export type RequestOptions = {
+  url: string
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  data?: Record<string, any>
+  header?: Record<string, string>
+  showLoading?: boolean
+  loadingText?: string
+}
+
+export type ResponseData<T = any> = {
+  success: boolean
+  code: number
+  message: string
+  data: T
+}
+
+const BASE_URL = '/api'
+
+const handleError = (code: number, message: string): void => {
+  switch (code) {
+    case 401:
+      uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
+      clearLoginState()
+      setTimeout(() => {
+        uni.navigateTo({ url: '/pages/login/login' })
+      }, 1500)
+      break
+    case 403:
+      uni.showToast({ title: '暂无权限访问', icon: 'none' })
+      break
+    case 429:
+      uni.showToast({ title: '请求过于频繁，请稍后重试', icon: 'none' })
+      break
+    case 500:
+      uni.showToast({ title: '服务器内部错误', icon: 'none' })
+      break
+    default:
+      uni.showToast({ title: message || '请求失败', icon: 'none' })
+  }
+}
+
+const checkNetwork = (): boolean => {
+  try {
+    const networkType = uni.getNetworkType({ fail: () => {} })?.networkType
+    return networkType !== 'none'
+  } catch {
+    return true
+  }
+}
+
+export const request = async <T = any>(options: RequestOptions): Promise<ResponseData<T>> => {
+  const { 
+    url, 
+    method = 'GET', 
+    data = {}, 
+    header = {}, 
+    showLoading = true, 
+    loadingText = '加载中...' 
+  } = options
+
+  if (!checkNetwork()) {
+    uni.showToast({ title: '网络连接异常，请检查网络', icon: 'none' })
+    throw new Error('网络离线')
+  }
+
+  if (showLoading) {
+    uni.showLoading({ title: loadingText, mask: true })
+  }
+
+  try {
+    const authHeader: Record<string, string> = {}
+    
+    if (state.tokenInfo?.accessToken) {
+      authHeader['Authorization'] = `Bearer ${state.tokenInfo.accessToken}`
+    }
+
+    const response = await new Promise<{ statusCode: number; data: ResponseData<T> }>((resolve, reject) => {
+      uni.request({
+        url: BASE_URL + url,
+        method,
+        data,
+        header: {
+          'Content-Type': 'application/json',
+          ...authHeader,
+          ...header
+        },
+        success: (res) => {
+          resolve({
+            statusCode: res.statusCode,
+            data: res.data as ResponseData<T>
+          })
+        },
+        fail: (err) => {
+          reject(err)
+        }
+      })
+    })
+
+    if (response.statusCode === 401 && state.tokenInfo?.refreshToken) {
+      const refreshed = await refreshToken()
+      
+      if (refreshed) {
+        return await request({ ...options, showLoading: false })
+      } else {
+        clearLoginState()
+        throw new Error('登录已过期')
+      }
+    }
+
+    const result = response.data
+
+    if (!result.success) {
+      handleError(result.code, result.message)
+      throw new Error(result.message)
+    }
+
+    return result
+
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : '请求失败'
+    
+    if (errMsg !== '登录已过期') {
+      uni.showToast({ title: errMsg, icon: 'none' })
+    }
+    
+    throw error
+  } finally {
+    if (showLoading) {
+      uni.hideLoading()
+    }
+  }
+}
+
+export const authApi = {
+  loginByPassword: async (username: string, password: string) => {
+    return request({
+      url: '/auth/login',
+      method: 'POST',
+      data: { username, password },
+      showLoading: true,
+      loadingText: '登录中...'
+    })
+  },
+
+  loginBySms: async (phone: string, smsCode: string) => {
+    return request({
+      url: '/auth/login/sms',
+      method: 'POST',
+      data: { phone, smsCode },
+      showLoading: true,
+      loadingText: '验证中...'
+    })
+  },
+
+  sendSmsCode: async (phone: string) => {
+    return request({
+      url: '/auth/sms/code',
+      method: 'POST',
+      data: { phone },
+      showLoading: true,
+      loadingText: '发送中...'
+    })
+  },
+
+  logout: async () => {
+    return request({
+      url: '/auth/logout',
+      method: 'POST',
+      showLoading: true,
+      loadingText: '退出中...'
+    })
+  },
+
+  getUserInfo: async () => {
+    return request({
+      url: '/auth/user/info',
+      method: 'GET',
+      showLoading: false
+    })
+  }
+}

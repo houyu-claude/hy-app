@@ -12,12 +12,25 @@ export type UserInfo = {
   avatarUrl?: string
 }
 
+export type TokenInfo = {
+  accessToken: string
+  refreshToken: string
+  expiresAt: number
+}
+
 type State = {
   lifeCycleNum: number
   statusBarHeight: number
   safeArea: SafeArea
   isDarkMode: boolean
   userInfo: UserInfo | null
+  tokenInfo: TokenInfo | null
+}
+
+const STORAGE_KEYS = {
+  USER_INFO: 'HY_USER_INFO',
+  TOKEN_INFO: 'HY_TOKEN_INFO',
+  ENCRYPTED_TOKEN: 'HY_ENCRYPTED_TOKEN'
 }
 
 export const state = reactive({
@@ -32,7 +45,8 @@ export const state = reactive({
     height: 0,
   },
   isDarkMode: false,
-  userInfo: null
+  userInfo: null,
+  tokenInfo: null
 } as State)
 
 export const setLifeCycleNum = (num: number) => {
@@ -49,6 +63,90 @@ export const setSafeArea = (value: SafeArea) => {
 
 export const setUserInfo = (userInfo: UserInfo | null) => {
   state.userInfo = userInfo
+  if (userInfo) {
+    uni.setStorageSync(STORAGE_KEYS.USER_INFO, JSON.stringify(userInfo))
+  } else {
+    uni.removeStorageSync(STORAGE_KEYS.USER_INFO)
+  }
+}
+
+export const setTokenInfo = (tokenInfo: TokenInfo | null) => {
+  state.tokenInfo = tokenInfo
+  if (tokenInfo) {
+    uni.setStorageSync(STORAGE_KEYS.TOKEN_INFO, JSON.stringify(tokenInfo))
+  } else {
+    uni.removeStorageSync(STORAGE_KEYS.TOKEN_INFO)
+    uni.removeStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN)
+  }
+}
+
+export const isTokenExpired = (): boolean => {
+  if (!state.tokenInfo) return true
+  return Date.now() >= state.tokenInfo.expiresAt
+}
+
+export const refreshToken = async (): Promise<boolean> => {
+  if (!state.tokenInfo?.refreshToken) {
+    return false
+  }
+  
+  try {
+    const response = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        refreshToken: state.tokenInfo.refreshToken
+      })
+    })
+    
+    const data = await response.json()
+    
+    if (data.success && data.data) {
+      const newTokenInfo: TokenInfo = {
+        accessToken: data.data.accessToken,
+        refreshToken: data.data.refreshToken || state.tokenInfo.refreshToken,
+        expiresAt: Date.now() + (data.data.expiresIn || 7200) * 1000
+      }
+      setTokenInfo(newTokenInfo)
+      return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+export const restoreLoginState = (): boolean => {
+  try {
+    const userInfoStr = uni.getStorageSync(STORAGE_KEYS.USER_INFO)
+    const tokenInfoStr = uni.getStorageSync(STORAGE_KEYS.TOKEN_INFO)
+    
+    if (userInfoStr) {
+      state.userInfo = JSON.parse(userInfoStr) as UserInfo
+    }
+    
+    if (tokenInfoStr) {
+      state.tokenInfo = JSON.parse(tokenInfoStr) as TokenInfo
+    }
+    
+    return !!state.userInfo && !!state.tokenInfo
+  } catch {
+    return false
+  }
+}
+
+export const clearLoginState = () => {
+  state.userInfo = null
+  state.tokenInfo = null
+  uni.removeStorageSync(STORAGE_KEYS.USER_INFO)
+  uni.removeStorageSync(STORAGE_KEYS.TOKEN_INFO)
+  uni.removeStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN)
+}
+
+export const isLoggedIn = (): boolean => {
+  return !!state.userInfo && !!state.tokenInfo && !isTokenExpired()
 }
 
 const resolveTheme = (appTheme: string, osTheme?: string): boolean => {

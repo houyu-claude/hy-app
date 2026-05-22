@@ -20,7 +20,11 @@
       "Bash(ls -la static/)",
       "Bash(dir static *)",
       "Bash(find static/ -type f)",
-      "Bash(dir *)"
+      "Bash(dir *)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\hy-app\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\hy-app\"\\), \".\" } | Sort-Object)",
+      "Bash(Get-ChildItem -Path \"D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\hy-app\" -Directory -Exclude \"node_modules\",\".git\",\"dist\")",
+      "Bash(Select-Object Name)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\code-1\\\\xiaoyi-trae\\\\houyu-fe\\\\hy-app\" -Force | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"Directory\"}else{\"File\"}}} | Format-Table -AutoSize)"
     ]
   }
 }
