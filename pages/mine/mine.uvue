@@ -120,6 +120,10 @@
     // #ifdef DEBUG
     console.log('Mine Page Show')
     // #endif
+    
+    if (!loggedIn.value) {
+      uni.redirectTo({ url: '/pages/login/login' })
+    }
   })
 
   onLoad(() => {

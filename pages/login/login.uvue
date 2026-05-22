@@ -193,6 +193,20 @@ const sendSmsCode = async () => {
     uni.showToast({ title: '验证码已发送', icon: 'success' })
   } catch (error) {
     console.error('发送验证码失败:', error)
+    const errMsg = error instanceof Error ? error.message : '发送失败'
+    let toastMsg = '短信发送失败，请稍后重试'
+    
+    if (errMsg.includes('429') || errMsg.includes('频繁')) {
+      toastMsg = '该号码已被限制，请明日再试'
+    } else if (errMsg.includes('网络')) {
+      toastMsg = '网络异常，请检查网络连接'
+    } else if (errMsg.includes('格式')) {
+      toastMsg = '手机号格式错误，请重新输入'
+    } else if (errMsg.includes('服务') || errMsg.includes('系统')) {
+      toastMsg = '短信服务暂时不可用，请稍后重试'
+    }
+    
+    uni.showToast({ title: toastMsg, icon: 'none' })
   }
 }
 

@@ -1,4 +1,4 @@
-import { state, setTokenInfo, clearLoginState, refreshToken } from '@/store/index.uts'
+import { state, clearLoginState, refreshToken } from '@/store/index.uts'
 
 export type RequestOptions = {
   url: string
@@ -7,6 +7,7 @@ export type RequestOptions = {
   header?: Record<string, string>
   showLoading?: boolean
   loadingText?: string
+  timeout?: number
 }
 
 export type ResponseData<T = any> = {
@@ -17,6 +18,7 @@ export type ResponseData<T = any> = {
 }
 
 const BASE_URL = '/api'
+const DEFAULT_TIMEOUT = 30000
 
 const handleError = (code: number, message: string): void => {
   switch (code) {
@@ -41,13 +43,18 @@ const handleError = (code: number, message: string): void => {
   }
 }
 
-const checkNetwork = (): boolean => {
-  try {
-    const networkType = uni.getNetworkType({ fail: () => {} })?.networkType
-    return networkType !== 'none'
-  } catch {
-    return true
-  }
+const checkNetwork = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    uni.getNetworkType({
+      success: (res) => {
+        resolve(res.networkType !== 'none')
+      },
+      fail: () => {
+        resolve(true)
+      },
+      complete: () => {}
+    })
+  })
 }
 
 export const request = async <T = any>(options: RequestOptions): Promise<ResponseData<T>> => {
@@ -57,10 +64,12 @@ export const request = async <T = any>(options: RequestOptions): Promise<Respons
     data = {}, 
     header = {}, 
     showLoading = true, 
-    loadingText = '加载中...' 
+    loadingText = '加载中...',
+    timeout = DEFAULT_TIMEOUT
   } = options
 
-  if (!checkNetwork()) {
+  const isOnline = await checkNetwork()
+  if (!isOnline) {
     uni.showToast({ title: '网络连接异常，请检查网络', icon: 'none' })
     throw new Error('网络离线')
   }
@@ -77,6 +86,14 @@ export const request = async <T = any>(options: RequestOptions): Promise<Respons
     }
 
     const response = await new Promise<{ statusCode: number; data: ResponseData<T> }>((resolve, reject) => {
+      let timeoutTimer: ReturnType<typeof setTimeout> | null = null
+      
+      if (timeout > 0) {
+        timeoutTimer = setTimeout(() => {
+          reject(new Error('请求超时'))
+        }, timeout)
+      }
+
       uni.request({
         url: BASE_URL + url,
         method,
@@ -86,13 +103,20 @@ export const request = async <T = any>(options: RequestOptions): Promise<Respons
           ...authHeader,
           ...header
         },
+        timeout,
         success: (res) => {
+          if (timeoutTimer) {
+            clearTimeout(timeoutTimer)
+          }
           resolve({
             statusCode: res.statusCode,
             data: res.data as ResponseData<T>
           })
         },
         fail: (err) => {
+          if (timeoutTimer) {
+            clearTimeout(timeoutTimer)
+          }
           reject(err)
         }
       })
@@ -121,7 +145,9 @@ export const request = async <T = any>(options: RequestOptions): Promise<Respons
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : '请求失败'
     
-    if (errMsg !== '登录已过期') {
+    if (errMsg === '请求超时') {
+      uni.showToast({ title: '请求超时，请稍后重试', icon: 'none' })
+    } else if (errMsg !== '登录已过期') {
       uni.showToast({ title: errMsg, icon: 'none' })
     }
     

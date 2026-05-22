@@ -33,6 +33,25 @@ const STORAGE_KEYS = {
   ENCRYPTED_TOKEN: 'HY_ENCRYPTED_TOKEN'
 }
 
+const ENCRYPT_KEY = 'houyu_app_key_2026'
+
+const xorEncrypt = (text: string, key: string): string => {
+  let result = ''
+  for (let i = 0; i < text.length; i++) {
+    result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length))
+  }
+  return btoa(result)
+}
+
+const xorDecrypt = (encrypted: string, key: string): string => {
+  const decoded = atob(encrypted)
+  let result = ''
+  for (let i = 0; i < decoded.length; i++) {
+    result += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length))
+  }
+  return result
+}
+
 export const state = reactive({
   lifeCycleNum: 0,
   statusBarHeight: 0,
@@ -73,7 +92,8 @@ export const setUserInfo = (userInfo: UserInfo | null) => {
 export const setTokenInfo = (tokenInfo: TokenInfo | null) => {
   state.tokenInfo = tokenInfo
   if (tokenInfo) {
-    uni.setStorageSync(STORAGE_KEYS.TOKEN_INFO, JSON.stringify(tokenInfo))
+    const encrypted = xorEncrypt(JSON.stringify(tokenInfo), ENCRYPT_KEY)
+    uni.setStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN, encrypted)
   } else {
     uni.removeStorageSync(STORAGE_KEYS.TOKEN_INFO)
     uni.removeStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN)
@@ -85,50 +105,82 @@ export const isTokenExpired = (): boolean => {
   return Date.now() >= state.tokenInfo.expiresAt
 }
 
+let isRefreshing = false
+let refreshQueue: Array<(success: boolean) => void> = []
+
 export const refreshToken = async (): Promise<boolean> => {
   if (!state.tokenInfo?.refreshToken) {
     return false
   }
-  
-  try {
-    const response = await fetch('/api/auth/refresh', {
+
+  if (isRefreshing) {
+    return new Promise((resolve) => {
+      refreshQueue.push(resolve)
+    })
+  }
+
+  isRefreshing = true
+
+  return new Promise((resolve) => {
+    uni.request({
+      url: '/api/auth/refresh',
       method: 'POST',
-      headers: {
+      header: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        refreshToken: state.tokenInfo.refreshToken
-      })
-    })
-    
-    const data = await response.json()
-    
-    if (data.success && data.data) {
-      const newTokenInfo: TokenInfo = {
-        accessToken: data.data.accessToken,
-        refreshToken: data.data.refreshToken || state.tokenInfo.refreshToken,
-        expiresAt: Date.now() + (data.data.expiresIn || 7200) * 1000
+      data: {
+        refreshToken: state.tokenInfo?.refreshToken
+      },
+      success: (res) => {
+        try {
+          const data = res.data as { success: boolean; data?: { accessToken: string; refreshToken?: string; expiresIn?: number } }
+          
+          if (data.success && data.data) {
+            const newTokenInfo: TokenInfo = {
+              accessToken: data.data.accessToken,
+              refreshToken: data.data.refreshToken || state.tokenInfo!.refreshToken,
+              expiresAt: Date.now() + (data.data.expiresIn || 7200) * 1000
+            }
+            setTokenInfo(newTokenInfo)
+            resolve(true)
+            refreshQueue.forEach(callback => callback(true))
+          } else {
+            resolve(false)
+            refreshQueue.forEach(callback => callback(false))
+          }
+        } catch {
+          resolve(false)
+          refreshQueue.forEach(callback => callback(false))
+        }
+      },
+      fail: () => {
+        resolve(false)
+        refreshQueue.forEach(callback => callback(false))
+      },
+      complete: () => {
+        isRefreshing = false
+        refreshQueue = []
       }
-      setTokenInfo(newTokenInfo)
-      return true
-    }
-    return false
-  } catch {
-    return false
-  }
+    })
+  })
 }
 
 export const restoreLoginState = (): boolean => {
   try {
     const userInfoStr = uni.getStorageSync(STORAGE_KEYS.USER_INFO)
-    const tokenInfoStr = uni.getStorageSync(STORAGE_KEYS.TOKEN_INFO)
     
     if (userInfoStr) {
       state.userInfo = JSON.parse(userInfoStr) as UserInfo
     }
     
-    if (tokenInfoStr) {
-      state.tokenInfo = JSON.parse(tokenInfoStr) as TokenInfo
+    const encryptedToken = uni.getStorageSync(STORAGE_KEYS.ENCRYPTED_TOKEN)
+    if (encryptedToken) {
+      try {
+        const tokenInfoStr = xorDecrypt(encryptedToken, ENCRYPT_KEY)
+        state.tokenInfo = JSON.parse(tokenInfoStr) as TokenInfo
+      } catch {
+        state.tokenInfo = null
+      }
     }
     
     return !!state.userInfo && !!state.tokenInfo
